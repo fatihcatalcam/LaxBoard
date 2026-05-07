@@ -77,7 +77,9 @@ Half-field of an official Sixes lacrosse field (35m × 36m view).
 - 6 players, identified by numbers 1–6 only (no names, no colors per player).
 - Rendered as white filled circles with black number in center.
 - Positioned anywhere on the canvas by drag.
-- Starting positions set by dragging before or outside recording mode.
+- **IDLE mode drag:** Dragging a player circle repositions it — no path is recorded.
+- **RECORDING mode drag:** Dragging the active player records a movement path.
+- When saving a set, all 6 players' data is always sent. Players that did not move are saved with a single-point path `[{x, y, t}]` representing their current position. This ensures all positions are restored correctly on load.
 
 ---
 
@@ -148,7 +150,7 @@ Swagger UI: `/api-docs`
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
 | GET | `/sets` | — | List all sets |
-| GET | `/sets/search?q=` | — | Search by name |
+| GET | `/sets/search?q=` | — | Search by name (empty `q` returns all sets) |
 | GET | `/sets/:id` | — | Get set + all player paths |
 | POST | `/sets` | `{name}` | Create new set |
 | PUT | `/sets/:id` | `{name}` | Rename set |
