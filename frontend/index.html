@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LaxBoard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <h1>LaxBoard</h1>
+
+      <section id="set-section">
+        <h2>Sets</h2>
+        <div id="set-controls">
+          <input id="set-search" type="text" placeholder="Search sets…" />
+          <button id="btn-new-set">+ New Set</button>
+        </div>
+        <ul id="set-list"></ul>
+      </section>
+
+      <section id="record-section">
+        <h2>Record</h2>
+        <div id="player-buttons"></div>
+        <div id="record-controls">
+          <button id="btn-record" disabled>Record Player</button>
+          <button id="btn-stop" disabled>Stop</button>
+          <button id="btn-clear" disabled>Clear Paths</button>
+        </div>
+        <label id="toggle-paths-label">
+          <input id="toggle-paths" type="checkbox" checked />
+          Show paths
+        </label>
+      </section>
+
+      <section id="playback-section">
+        <h2>Playback</h2>
+        <div id="playback-controls">
+          <button id="btn-play" disabled>Play</button>
+          <button id="btn-pause" disabled>Pause</button>
+          <button id="btn-save" disabled>Save</button>
+        </div>
+      </section>
+
+      <div id="status-bar"></div>
+    </aside>
+
+    <main id="canvas-area">
+      <canvas id="field-canvas"></canvas>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
