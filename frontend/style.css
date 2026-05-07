@@ -195,4 +195,5 @@ button.active { background: #e94560; border-color: #e94560; color: #fff; }
   display: block;
   cursor: default;
 }
-#field-canvas.recording { cursor: crosshair; }
+#field-canvas.recording    { cursor: crosshair; }
+#field-canvas.free-dragging { cursor: grabbing; }

@@ -74,7 +74,11 @@ export class Animator {
         this.field.players[i] = this._interpolate(path, elapsed);
       }
       const bp = this.field.ballPath;
-      if (bp.length >= 2) this.field.ball = this._interpolate(bp, elapsed);
+      if (bp.length >= 2) {
+        this.field.ball = this._interpolate(bp, elapsed);
+      } else if (this.field.ballAttachedTo !== null) {
+        this.field.ball = { ...this.field.players[this.field.ballAttachedTo - 1] };
+      }
 
       this.field.draw(null, null);
 

@@ -35,9 +35,10 @@ export class Field {
       { x: 28, y:  5 },  // #6 — right wing
     ];
 
-    this.paths    = Array.from({ length: 6 }, () => []);
-    this.ball     = { x: 18, y: 14 };
-    this.ballPath = [];
+    this.paths          = Array.from({ length: 6 }, () => []);
+    this.ball           = { x: 18, y: 14 };
+    this.ballPath       = [];
+    this.ballAttachedTo = null; // 1–6: player number holding the ball
 
     this.showPaths = true;
     this._scale = 1;
@@ -82,8 +83,8 @@ export class Field {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this._drawField(ctx);
     if (this.showPaths) this._drawPaths(ctx);
-    this._drawBall(ctx, selectedEntity, recordingEntity);
     this._drawPlayers(ctx, selectedEntity, recordingEntity);
+    this._drawBall(ctx, selectedEntity, recordingEntity);
   }
 
   _drawField(ctx) {
@@ -300,14 +301,37 @@ export class Field {
       this.ball = { x: mx, y: my };
     } else {
       this.players[entity - 1] = { x: mx, y: my };
+      if (this.ballAttachedTo === entity) this.ball = { x: mx, y: my };
     }
+  }
+
+  attachBallTo(playerNum) {
+    this.ballAttachedTo = playerNum;
+    this.ball = { ...this.players[playerNum - 1] };
+  }
+
+  detachBall() {
+    this.ballAttachedTo = null;
+  }
+
+  // Returns the player number the ball overlaps with, or null
+  ballOverlapsPlayer() {
+    const bpx = this._px(this.ball.x);
+    const bpy = this._py(this.ball.y);
+    for (let i = 0; i < 6; i++) {
+      const cpx = this._px(this.players[i].x);
+      const cpy = this._py(this.players[i].y);
+      if (Math.hypot(bpx - cpx, bpy - cpy) <= PLAYER_RADIUS + BALL_RADIUS) return i + 1;
+    }
+    return null;
   }
 
   // ── Path helpers ──────────────────────────────────────────
 
   setPathsFromSaved(savedPaths) {
-    this.paths    = Array.from({ length: 6 }, () => []);
-    this.ballPath = [];
+    this.paths          = Array.from({ length: 6 }, () => []);
+    this.ballPath       = [];
+    this.ballAttachedTo = null;
     for (const { player_number, path } of savedPaths) {
       if (player_number === 0) {
         this.ballPath = path;
@@ -326,13 +350,15 @@ export class Field {
 
   snapshotPositions() {
     return {
-      players: this.players.map(p => ({ ...p })),
-      ball:    { ...this.ball }
+      players:        this.players.map(p => ({ ...p })),
+      ball:           { ...this.ball },
+      ballAttachedTo: this.ballAttachedTo
     };
   }
 
   restorePositions(snapshot) {
-    this.players = snapshot.players.map(p => ({ ...p }));
-    this.ball    = { ...snapshot.ball };
+    this.players        = snapshot.players.map(p => ({ ...p }));
+    this.ball           = { ...snapshot.ball };
+    this.ballAttachedTo = snapshot.ballAttachedTo ?? null;
   }
 }
