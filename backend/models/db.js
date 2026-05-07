@@ -1,0 +1,40 @@
+const { Database } = require('node-sqlite3-wasm');
+const path = require('path');
+
+let _db;
+
+function getDb() {
+  if (!_db) {
+    _db = new Database(path.join(__dirname, '..', 'laxboard.db'));
+    _db.exec('PRAGMA journal_mode = WAL');
+    _db.exec('PRAGMA foreign_keys = ON');
+    _initSchema(_db);
+  }
+  return _db;
+}
+
+function createTestDb() {
+  const db = new Database(':memory:');
+  db.exec('PRAGMA foreign_keys = ON');
+  _initSchema(db);
+  return db;
+}
+
+function _initSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sets (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT UNIQUE NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS player_paths (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
+      player_number INTEGER NOT NULL CHECK(player_number BETWEEN 1 AND 6),
+      path          TEXT NOT NULL
+    );
+  `);
+}
+
+module.exports = { getDb, createTestDb };
