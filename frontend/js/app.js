@@ -18,7 +18,7 @@ const field    = new Field(canvas);
 const recorder = new Recorder(field, canvas);
 const animator = new Animator(field);
 
-// ── Player selector buttons ──────────────────────────────────
+// ── Player selector buttons (1–6) + ball (0) ────────────────
 for (let i = 1; i <= 6; i++) {
   const btn = document.createElement('button');
   btn.className = 'player-btn';
@@ -31,6 +31,18 @@ for (let i = 1; i <= 6; i++) {
   });
   playerBtns.appendChild(btn);
 }
+
+const ballBtn = document.createElement('button');
+ballBtn.className = 'player-btn ball-btn';
+ballBtn.textContent = '⬤';
+ballBtn.title = 'Ball';
+ballBtn.dataset.player = 0;
+ballBtn.addEventListener('click', () => {
+  if (recorder.state === 'RECORDING') return;
+  recorder.selectPlayer(0);
+  syncUI();
+});
+playerBtns.appendChild(ballBtn);
 
 // ── Record controls ──────────────────────────────────────────
 btnRecord.addEventListener('click', () => {
@@ -90,7 +102,7 @@ function syncUI() {
   const isRecording = recorder.state === 'RECORDING';
   const isPlaying   = animator.state === 'PLAYING';
   const isPaused    = animator.state === 'PAUSED';
-  const hasPlayer   = !!recorder.selectedPlayer;
+  const hasPlayer   = recorder.selectedPlayer !== null;
 
   // Player buttons
   for (const btn of playerBtns.querySelectorAll('.player-btn')) {
@@ -106,7 +118,7 @@ function syncUI() {
   btnPause.disabled  = !isPlaying;
   btnSave.disabled   = isRecording || isPlaying || !document.querySelector('#set-list li.active');
 
-  if (isRecording) setStatus(`Recording player ${recorder.activePlayer}… release mouse to stop`);
+  if (isRecording) setStatus(`Recording ${recorder.activePlayer === 0 ? 'ball' : `player ${recorder.activePlayer}`}… release mouse to stop`);
   else if (isPlaying) setStatus('Playing…');
   else if (isPaused) setStatus('Paused');
 }

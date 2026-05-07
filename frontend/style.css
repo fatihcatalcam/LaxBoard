@@ -144,6 +144,10 @@ button.active { background: #e94560; border-color: #e94560; color: #fff; }
 }
 .player-btn.selected { background: #e94560; border-color: #e94560; color: #fff; }
 
+.ball-btn { background: #6b5a00; border-color: #ffd700; color: #ffd700; font-size: 1rem; }
+.ball-btn.selected { background: #ffd700; border-color: #ffd700; color: #333; }
+.ball-btn:hover:not(:disabled) { background: #8a7400; }
+
 /* ── Record Controls ─────────────────────────────────────── */
 #record-controls {
   display: flex;

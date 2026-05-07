@@ -36,7 +36,7 @@ function validatePaths(paths) {
   if (!Array.isArray(paths) || paths.length === 0)
     throw new ValidationError('paths must be a non-empty array');
   for (const p of paths) {
-    if (!Number.isInteger(p.player_number) || p.player_number < 1 || p.player_number > 6)
+    if (!Number.isInteger(p.player_number) || p.player_number < 0 || p.player_number > 6)
       throw new ValidationError('player_number must be an integer between 1 and 6');
     if (!Array.isArray(p.path) || p.path.length === 0)
       throw new ValidationError('each path must be a non-empty array');

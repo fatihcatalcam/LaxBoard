@@ -141,13 +141,18 @@ export class SetsUI {
   async _savePaths() {
     if (!this.activeSetId) return;
 
-    // Build paths payload — all 6 players; stationary ones get single-point path
+    // Build paths payload — ball (0) + all 6 players; stationary ones get single-point path
     const paths = this.field.players.map((pos, i) => {
       const recorded = this.field.paths[i];
       return {
         player_number: i + 1,
         path: recorded.length >= 2 ? recorded : [{ x: pos.x, y: pos.y, t: 0 }]
       };
+    });
+    const bp = this.field.ballPath;
+    paths.push({
+      player_number: 0,
+      path: bp.length >= 2 ? bp : [{ x: this.field.ball.x, y: this.field.ball.y, t: 0 }]
     });
 
     try {

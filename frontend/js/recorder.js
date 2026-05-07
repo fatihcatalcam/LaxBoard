@@ -7,8 +7,8 @@ export class Recorder {
     this.canvas = canvas;
 
     this.state = 'IDLE';        // 'IDLE' | 'RECORDING'
-    this.selectedPlayer = null; // 1–6
-    this.activePlayer = null;   // player being recorded right now
+    this.selectedPlayer = null; // 0 (ball) or 1–6
+    this.activePlayer = null;   // entity being recorded right now
     this._currentPath = [];
     this._recordStart = null;   // high-res timestamp when recording started
     this._dragging = false;
@@ -37,7 +37,7 @@ export class Recorder {
   }
 
   startRecording() {
-    if (!this.selectedPlayer || this.state !== 'IDLE') return;
+    if (this.selectedPlayer === null || this.state !== 'IDLE') return;
     this.state = 'RECORDING';
     this.activePlayer = this.selectedPlayer;
     this._currentPath = [];
@@ -64,9 +64,9 @@ export class Recorder {
       this._addPoint(x, y, e.timeStamp);
       return;
     }
-    // IDLE: click a player to select
+    // IDLE: click a player or the ball to select
     const hit = this.field.playerAt(x, y);
-    if (hit) {
+    if (hit !== null) {
       this.selectPlayer(hit);
       this.field.draw(this.selectedPlayer, this.activePlayer);
     }
@@ -127,7 +127,11 @@ export class Recorder {
 
   _commitPath() {
     if (this._currentPath.length === 0) return;
-    this.field.paths[this.activePlayer - 1] = this._currentPath;
+    if (this.activePlayer === 0) {
+      this.field.ballPath = this._currentPath;
+    } else {
+      this.field.paths[this.activePlayer - 1] = this._currentPath;
+    }
     this._currentPath = [];
   }
 }

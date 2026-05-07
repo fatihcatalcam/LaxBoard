@@ -31,7 +31,7 @@ function _initSchema(db) {
     CREATE TABLE IF NOT EXISTS player_paths (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
-      player_number INTEGER NOT NULL CHECK(player_number BETWEEN 1 AND 6),
+      player_number INTEGER NOT NULL CHECK(player_number BETWEEN 0 AND 6),
       path          TEXT NOT NULL
     );
   `);

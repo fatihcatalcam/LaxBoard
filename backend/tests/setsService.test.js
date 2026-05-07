@@ -31,8 +31,11 @@ describe('validatePaths', () => {
   test('throws ValidationError on empty array', () => {
     expect(() => validatePaths([])).toThrow(ValidationError);
   });
-  test('throws ValidationError when player_number is 0', () => {
-    expect(() => validatePaths([{ player_number: 0, path: [{ x: 0, y: 0, t: 0 }] }])).toThrow(ValidationError);
+  test('throws ValidationError when player_number is -1', () => {
+    expect(() => validatePaths([{ player_number: -1, path: [{ x: 0, y: 0, t: 0 }] }])).toThrow(ValidationError);
+  });
+  test('allows player_number 0 (ball)', () => {
+    expect(() => validatePaths([{ player_number: 0, path: [{ x: 0, y: 0, t: 0 }] }])).not.toThrow();
   });
   test('throws ValidationError when player_number is 7', () => {
     expect(() => validatePaths([{ player_number: 7, path: [{ x: 0, y: 0, t: 0 }] }])).toThrow(ValidationError);

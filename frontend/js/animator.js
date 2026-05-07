@@ -19,10 +19,13 @@ export class Animator {
     if (this.state === 'PLAYING') return;
 
     const paths = this.field.paths;
-    this._duration = paths.reduce((max, p) => {
+    let maxT = paths.reduce((max, p) => {
       if (p.length < 2) return max;
       return Math.max(max, p[p.length - 1].t);
     }, 0);
+    const bp = this.field.ballPath;
+    if (bp.length >= 2) maxT = Math.max(maxT, bp[bp.length - 1].t);
+    this._duration = maxT;
 
     if (this._duration === 0) return; // nothing to play
 
@@ -68,9 +71,10 @@ export class Animator {
       for (let i = 0; i < 6; i++) {
         const path = this.field.paths[i];
         if (path.length < 2) continue;
-        const pos = this._interpolate(path, elapsed);
-        this.field.players[i] = pos;
+        this.field.players[i] = this._interpolate(path, elapsed);
       }
+      const bp = this.field.ballPath;
+      if (bp.length >= 2) this.field.ball = this._interpolate(bp, elapsed);
 
       this.field.draw(null, null);
 
