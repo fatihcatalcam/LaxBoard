@@ -1,16 +1,18 @@
-// Animates all 6 players simultaneously using their recorded {x,y,t} paths.
-// Players without a multi-point path stay stationary at their last position.
+// Animates steps sequentially. Within each step all players move simultaneously.
 
 export class Animator {
   constructor(field) {
     this.field = field;
     this._rafId = null;
-    this._startWall = null;  // performance.now() at playback start
-    this._duration = 0;      // total animation duration in ms
-    this._snapshot = null;   // player positions before playback (restored on stop)
-    this.state = 'IDLE';     // 'IDLE' | 'PLAYING' | 'PAUSED'
-    this._pausedAt = 0;      // elapsed ms when paused
-    this.onStateChange = null;
+    this._stepStartWall = null;
+    this._stepDuration  = 0;
+    this._snapshot      = null;
+    this.state          = 'IDLE';
+    this._currentStepIdx       = 0;
+    this._stepElapsedAtPause   = 0;
+    this._allSteps      = [];
+    this._stepDurations = [];
+    this.onStateChange  = null;
   }
 
   // ── Public API ────────────────────────────────────────────
@@ -18,42 +20,43 @@ export class Animator {
   play() {
     if (this.state === 'PLAYING') return;
 
-    const paths = this.field.paths;
-    let maxT = paths.reduce((max, p) => {
-      if (p.length < 2) return max;
-      return Math.max(max, p[p.length - 1].t);
-    }, 0);
-    const bp = this.field.ballPath;
-    if (bp.length >= 2) maxT = Math.max(maxT, bp[bp.length - 1].t);
-    this._duration = maxT;
-
-    if (this._duration === 0) return; // nothing to play
-
     if (this.state === 'IDLE') {
-      this._snapshot = this.field.snapshotPositions();
-      this._pausedAt = 0;
+      this._allSteps      = this.field.steps;
+      this._stepDurations = this._allSteps.map(step => {
+        let max = step.paths.reduce((m, p) => p.length < 2 ? m : Math.max(m, p[p.length - 1].t), 0);
+        if (step.ballPath.length >= 2) max = Math.max(max, step.ballPath[step.ballPath.length - 1].t);
+        return max;
+      });
+      if (this._stepDurations.every(d => d === 0)) return;
+      this._snapshot             = this.field.snapshotPositions();
+      this._currentStepIdx       = 0;
+      this._stepElapsedAtPause   = 0;
+      // Skip leading empty steps
+      while (
+        this._currentStepIdx < this._allSteps.length &&
+        this._stepDurations[this._currentStepIdx] === 0
+      ) this._currentStepIdx++;
     }
 
     this.state = 'PLAYING';
-    this._startWall = performance.now() - this._pausedAt;
-    this._tick();
+    this._startCurrentStep();
     this.onStateChange?.();
   }
 
   pause() {
     if (this.state !== 'PLAYING') return;
-    this._pausedAt = performance.now() - this._startWall;
+    this._stepElapsedAtPause = performance.now() - this._stepStartWall;
     cancelAnimationFrame(this._rafId);
     this._rafId = null;
-    this.state = 'PAUSED';
+    this.state  = 'PAUSED';
     this.onStateChange?.();
   }
 
   stop() {
     cancelAnimationFrame(this._rafId);
     this._rafId = null;
-    this.state = 'IDLE';
-    this._pausedAt = 0;
+    this.state  = 'IDLE';
+    this._stepElapsedAtPause = 0;
     if (this._snapshot) {
       this.field.restorePositions(this._snapshot);
       this._snapshot = null;
@@ -64,16 +67,26 @@ export class Animator {
 
   // ── Internals ─────────────────────────────────────────────
 
+  _startCurrentStep() {
+    const step = this._allSteps[this._currentStepIdx];
+    this.field.restorePositions(step.startPositions);
+    this._stepDuration  = this._stepDurations[this._currentStepIdx];
+    this._stepStartWall = performance.now() - this._stepElapsedAtPause;
+    this._stepElapsedAtPause = 0;
+    this._tick();
+  }
+
   _tick() {
     this._rafId = requestAnimationFrame((now) => {
-      const elapsed = now - this._startWall;
+      const elapsed = now - this._stepStartWall;
+      const step    = this._allSteps[this._currentStepIdx];
 
       for (let i = 0; i < 6; i++) {
-        const path = this.field.paths[i];
+        const path = step.paths[i];
         if (path.length < 2) continue;
         this.field.players[i] = this._interpolate(path, elapsed);
       }
-      const bp = this.field.ballPath;
+      const bp = step.ballPath;
       if (bp.length >= 2) {
         this.field.ball = this._interpolate(bp, elapsed);
       } else if (this.field.ballAttachedTo !== null) {
@@ -82,15 +95,25 @@ export class Animator {
 
       this.field.draw(null, null);
 
-      if (elapsed >= this._duration) {
-        this.state = 'IDLE';
-        this._pausedAt = 0;
-        if (this._snapshot) {
+      if (elapsed >= this._stepDuration) {
+        this._snapToStepEnd(this._currentStepIdx);
+
+        // Find next step with actual paths
+        let nextIdx = this._currentStepIdx + 1;
+        while (nextIdx < this._allSteps.length && this._stepDurations[nextIdx] === 0) nextIdx++;
+
+        if (nextIdx < this._allSteps.length) {
+          this._currentStepIdx     = nextIdx;
+          this._stepElapsedAtPause = 0;
+          this._startCurrentStep();
+        } else {
+          this.state = 'IDLE';
+          this._stepElapsedAtPause = 0;
           this.field.restorePositions(this._snapshot);
           this._snapshot = null;
+          this.field.draw();
+          this.onStateChange?.();
         }
-        this.field.draw();
-        this.onStateChange?.();
         return;
       }
 
@@ -98,12 +121,25 @@ export class Animator {
     });
   }
 
+  _snapToStepEnd(stepIdx) {
+    const step = this._allSteps[stepIdx];
+    for (let i = 0; i < 6; i++) {
+      const path = step.paths[i];
+      if (path.length >= 2) {
+        this.field.players[i] = { x: path[path.length - 1].x, y: path[path.length - 1].y };
+      }
+    }
+    const bp = step.ballPath;
+    if (bp.length >= 2) {
+      this.field.ball = { x: bp[bp.length - 1].x, y: bp[bp.length - 1].y };
+    }
+  }
+
   _interpolate(path, elapsed) {
     if (elapsed <= path[0].t) return { x: path[0].x, y: path[0].y };
     const last = path[path.length - 1];
     if (elapsed >= last.t) return { x: last.x, y: last.y };
 
-    // Binary-search for the surrounding segment
     let lo = 0, hi = path.length - 1;
     while (hi - lo > 1) {
       const mid = (lo + hi) >> 1;
