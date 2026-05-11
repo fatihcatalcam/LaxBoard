@@ -21,6 +21,7 @@ export class Animator {
     if (this.state === 'PLAYING') return;
 
     if (this.state === 'IDLE') {
+      this.field.recomputeStartPositions();
       this._allSteps      = this.field.steps;
       this._stepDurations = this._allSteps.map(step => {
         let max = step.paths.reduce((m, p) => p.length < 2 ? m : Math.max(m, p[p.length - 1].t), 0);

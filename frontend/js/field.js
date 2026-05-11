@@ -81,13 +81,37 @@ export class Field {
     if (this.steps.length === 1) return;
     this.steps.splice(this.currentStepIndex, 1);
     this.currentStepIndex = Math.min(this.currentStepIndex, this.steps.length - 1);
-    this.restorePositions(this.steps[this.currentStepIndex].startPositions);
   }
 
   goToStep(index) {
     if (index < 0 || index >= this.steps.length) return;
     this.currentStepIndex = index;
-    this.restorePositions(this.steps[index].startPositions);
+  }
+
+  // Recompute startPositions for every step from path endpoints.
+  // Called by Animator before playback so positions are always correct
+  // regardless of what order steps were added / recorded.
+  recomputeStartPositions() {
+    let curPlayers = this.steps[0].startPositions.players.map(p => ({ ...p }));
+    let curBall    = { ...this.steps[0].startPositions.ball };
+    for (let i = 0; i < this.steps.length; i++) {
+      const step = this.steps[i];
+      step.startPositions = {
+        players:        curPlayers.map(p => ({ ...p })),
+        ball:           { ...curBall },
+        ballAttachedTo: null
+      };
+      for (let j = 0; j < 6; j++) {
+        if (step.paths[j].length >= 2) {
+          const last = step.paths[j][step.paths[j].length - 1];
+          curPlayers[j] = { x: last.x, y: last.y };
+        }
+      }
+      if (step.ballPath.length >= 2) {
+        const last = step.ballPath[step.ballPath.length - 1];
+        curBall = { x: last.x, y: last.y };
+      }
+    }
   }
 
   clearCurrentStepPaths() {
