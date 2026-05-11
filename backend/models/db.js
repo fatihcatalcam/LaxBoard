@@ -35,6 +35,9 @@ function _initSchema(db) {
       path          TEXT NOT NULL
     );
   `);
+  try {
+    db.exec('ALTER TABLE player_paths ADD COLUMN step_index INTEGER NOT NULL DEFAULT 0');
+  } catch (_) { /* column already exists — safe to ignore */ }
 }
 
 module.exports = { getDb, createTestDb };

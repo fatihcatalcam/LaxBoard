@@ -37,7 +37,10 @@ function validatePaths(paths) {
     throw new ValidationError('paths must be a non-empty array');
   for (const p of paths) {
     if (!Number.isInteger(p.player_number) || p.player_number < 0 || p.player_number > 6)
-      throw new ValidationError('player_number must be an integer between 1 and 6');
+      throw new ValidationError('player_number must be an integer between 0 and 6');
+    const si = p.step_index ?? 0;
+    if (!Number.isInteger(si) || si < 0)
+      throw new ValidationError('step_index must be a non-negative integer');
     if (!Array.isArray(p.path) || p.path.length === 0)
       throw new ValidationError('each path must be a non-empty array');
     for (const pt of p.path) {
@@ -63,10 +66,16 @@ function createSetsService(db) {
     getSet(id) {
       const set = db.prepare('SELECT * FROM sets WHERE id = ?').get(id);
       if (!set) throw new SetNotFoundError(id);
-      const rows = db.prepare('SELECT player_number, path FROM player_paths WHERE set_id = ?').all(id);
+      const rows = db.prepare(
+        'SELECT player_number, step_index, path FROM player_paths WHERE set_id = ? ORDER BY step_index'
+      ).all(id);
       return {
         ...set,
-        paths: rows.map(r => ({ player_number: r.player_number, path: JSON.parse(r.path) }))
+        paths: rows.map(r => ({
+          player_number: r.player_number,
+          step_index: r.step_index ?? 0,
+          path: JSON.parse(r.path)
+        }))
       };
     },
 
@@ -102,11 +111,13 @@ function createSetsService(db) {
       validatePaths(paths);
       if (!db.prepare('SELECT id FROM sets WHERE id = ?').get(setId)) throw new SetNotFoundError(setId);
       const del = db.prepare('DELETE FROM player_paths WHERE set_id = ?');
-      const ins = db.prepare('INSERT INTO player_paths (set_id, player_number, path) VALUES (?, ?, ?)');
+      const ins = db.prepare(
+        'INSERT INTO player_paths (set_id, player_number, step_index, path) VALUES (?, ?, ?, ?)'
+      );
       db.exec('BEGIN');
       try {
         del.run(setId);
-        for (const p of paths) ins.run([setId, p.player_number, JSON.stringify(p.path)]);
+        for (const p of paths) ins.run([setId, p.player_number, p.step_index ?? 0, JSON.stringify(p.path)]);
         db.exec('COMMIT');
       } catch (e) {
         db.exec('ROLLBACK');

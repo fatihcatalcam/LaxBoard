@@ -200,4 +200,32 @@ describe('createSetsService CRUD', () => {
       expect(() => svc.savePaths(setId, [])).toThrow(ValidationError);
     });
   });
+
+  describe('step_index support', () => {
+    let setId;
+    beforeEach(() => { setId = svc.createSet('step-test').id; });
+
+    test('saves and returns step_index', () => {
+      svc.savePaths(setId, [
+        { player_number: 1, step_index: 0, path: [{ x: 0, y: 0, t: 0 }] },
+        { player_number: 1, step_index: 1, path: [{ x: 10, y: 10, t: 500 }] }
+      ]);
+      const set = svc.getSet(setId);
+      expect(set.paths).toHaveLength(2);
+      const step1 = set.paths.find(p => p.step_index === 1);
+      expect(step1.path[0].x).toBe(10);
+    });
+
+    test('defaults step_index to 0 when omitted', () => {
+      svc.savePaths(setId, [{ player_number: 1, path: [{ x: 0, y: 0, t: 0 }] }]);
+      const set = svc.getSet(setId);
+      expect(set.paths[0].step_index).toBe(0);
+    });
+
+    test('throws ValidationError when step_index is negative', () => {
+      expect(() => svc.savePaths(setId, [
+        { player_number: 1, step_index: -1, path: [{ x: 0, y: 0, t: 0 }] }
+      ])).toThrow(ValidationError);
+    });
+  });
 });
