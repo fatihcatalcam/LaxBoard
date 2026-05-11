@@ -227,5 +227,15 @@ describe('createSetsService CRUD', () => {
         { player_number: 1, step_index: -1, path: [{ x: 0, y: 0, t: 0 }] }
       ])).toThrow(ValidationError);
     });
+
+    test('returns paths ordered by step_index regardless of insertion order', () => {
+      svc.savePaths(setId, [
+        { player_number: 1, step_index: 1, path: [{ x: 10, y: 10, t: 500 }] },
+        { player_number: 2, step_index: 0, path: [{ x: 0, y: 0, t: 0 }] }
+      ]);
+      const set = svc.getSet(setId);
+      expect(set.paths[0].step_index).toBe(0);
+      expect(set.paths[1].step_index).toBe(1);
+    });
   });
 });

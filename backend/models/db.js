@@ -32,7 +32,8 @@ function _initSchema(db) {
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
       player_number INTEGER NOT NULL CHECK(player_number BETWEEN 0 AND 6),
-      path          TEXT NOT NULL
+      path          TEXT NOT NULL,
+      step_index    INTEGER NOT NULL DEFAULT 0
     );
   `);
   try {
