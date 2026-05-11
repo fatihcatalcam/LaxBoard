@@ -14,31 +14,36 @@ const X_DEPTH = 10;   // metres from end line
 const PLAYER_RADIUS = 14; // canvas pixels (fixed)
 const BALL_RADIUS   = 9;  // canvas pixels (fixed)
 
-const PLAYER_COLOUR = '#e94560';
-const PATH_COLOUR   = 'rgba(233, 69, 96, 0.6)';
-const BALL_COLOUR   = '#ffd700';
+const PLAYER_COLOUR    = '#e94560';
+const PATH_COLOUR      = 'rgba(233, 69, 96, 0.6)';
+const BALL_COLOUR      = '#ffd700';
 const BALL_PATH_COLOUR = 'rgba(255, 215, 0, 0.75)';
+
+const DEFAULT_PLAYERS = [
+  { x: 18, y: 26 },
+  { x: 11, y: 18 },
+  { x: 25, y: 18 },
+  { x: 18, y: 11 },
+  { x:  8, y:  5 },
+  { x: 28, y:  5 },
+];
+const DEFAULT_BALL = { x: 18, y: 14 };
 
 export class Field {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
 
-    // Sixes: 1 goalkeeper (near goal) + 5 field players
-    // x: 0–36, y: 0–35 (0 = midline, 35 = end line, goal at y=25)
-    this.players = [
-      { x: 18, y: 26 },  // #1 — goalkeeper (inside crease)
-      { x: 11, y: 18 },  // #2 — left attacker
-      { x: 25, y: 18 },  // #3 — right attacker
-      { x: 18, y: 11 },  // #4 — centre midfielder
-      { x:  8, y:  5 },  // #5 — left wing
-      { x: 28, y:  5 },  // #6 — right wing
-    ];
+    this.players        = DEFAULT_PLAYERS.map(p => ({ ...p }));
+    this.ball           = { ...DEFAULT_BALL };
+    this.ballAttachedTo = null;
 
-    this.paths          = Array.from({ length: 6 }, () => []);
-    this.ball           = { x: 18, y: 14 };
-    this.ballPath       = [];
-    this.ballAttachedTo = null; // 1–6: player number holding the ball
+    this.steps = [{
+      paths: Array.from({ length: 6 }, () => []),
+      ballPath: [],
+      startPositions: this.snapshotPositions()
+    }];
+    this.currentStepIndex = 0;
 
     this.showPaths = true;
     this._scale = 1;
@@ -47,6 +52,148 @@ export class Field {
 
     this._resize();
     window.addEventListener('resize', () => this._resize());
+  }
+
+  // ── Step accessors ────────────────────────────────────────
+
+  get currentStep() { return this.steps[this.currentStepIndex]; }
+  get stepCount()   { return this.steps.length; }
+
+  // Transparent proxies so Recorder keeps working unchanged
+  get paths()    { return this.currentStep.paths; }
+  set paths(v)   { this.currentStep.paths = v; }
+  get ballPath() { return this.currentStep.ballPath; }
+  set ballPath(v){ this.currentStep.ballPath = v; }
+
+  // ── Step management ───────────────────────────────────────
+
+  addStep() {
+    const startPositions = this.snapshotPositions();
+    this.steps.splice(this.currentStepIndex + 1, 0, {
+      paths: Array.from({ length: 6 }, () => []),
+      ballPath: [],
+      startPositions
+    });
+    this.currentStepIndex++;
+  }
+
+  deleteStep() {
+    if (this.steps.length === 1) return;
+    this.steps.splice(this.currentStepIndex, 1);
+    this.currentStepIndex = Math.min(this.currentStepIndex, this.steps.length - 1);
+    this.restorePositions(this.steps[this.currentStepIndex].startPositions);
+  }
+
+  goToStep(index) {
+    if (index < 0 || index >= this.steps.length) return;
+    this.currentStepIndex = index;
+    this.restorePositions(this.steps[index].startPositions);
+  }
+
+  clearCurrentStepPaths() {
+    this.currentStep.paths   = Array.from({ length: 6 }, () => []);
+    this.currentStep.ballPath = [];
+  }
+
+  clearAllSteps() {
+    this.players        = DEFAULT_PLAYERS.map(p => ({ ...p }));
+    this.ball           = { ...DEFAULT_BALL };
+    this.ballAttachedTo = null;
+    this.steps = [{
+      paths: Array.from({ length: 6 }, () => []),
+      ballPath: [],
+      startPositions: this.snapshotPositions()
+    }];
+    this.currentStepIndex = 0;
+  }
+
+  // Load from API response: [{player_number, step_index, path}]
+  setStepsFromSaved(savedPaths) {
+    const stepMap = new Map();
+    for (const p of savedPaths) {
+      const si = p.step_index ?? 0;
+      if (!stepMap.has(si)) {
+        stepMap.set(si, {
+          paths: Array.from({ length: 6 }, () => []),
+          ballPath: []
+        });
+      }
+      const step = stepMap.get(si);
+      if (p.player_number === 0) step.ballPath = p.path;
+      else step.paths[p.player_number - 1] = p.path;
+    }
+
+    if (stepMap.size === 0) { this.clearAllSteps(); return; }
+
+    const maxSi = Math.max(...stepMap.keys());
+
+    // Determine positions before step 0 from first points of step-0 paths
+    let curPlayers = DEFAULT_PLAYERS.map(p => ({ ...p }));
+    let curBall    = { ...DEFAULT_BALL };
+    const step0 = stepMap.get(0);
+    if (step0) {
+      for (let j = 0; j < 6; j++) {
+        if (step0.paths[j].length >= 1) curPlayers[j] = { x: step0.paths[j][0].x, y: step0.paths[j][0].y };
+      }
+      if (step0.ballPath.length >= 1) curBall = { x: step0.ballPath[0].x, y: step0.ballPath[0].y };
+    }
+
+    this.steps = [];
+    for (let i = 0; i <= maxSi; i++) {
+      const step = stepMap.get(i) || { paths: Array.from({ length: 6 }, () => []), ballPath: [] };
+      const startPositions = {
+        players: curPlayers.map(p => ({ ...p })),
+        ball: { ...curBall },
+        ballAttachedTo: null
+      };
+      this.steps.push({ ...step, startPositions });
+
+      // Advance positions to end of this step for next iteration
+      for (let j = 0; j < 6; j++) {
+        if (step.paths[j].length >= 1) {
+          const last = step.paths[j][step.paths[j].length - 1];
+          curPlayers[j] = { x: last.x, y: last.y };
+        }
+      }
+      if (step.ballPath.length >= 1) {
+        const last = step.ballPath[step.ballPath.length - 1];
+        curBall = { x: last.x, y: last.y };
+      }
+    }
+
+    this.currentStepIndex = 0;
+    // Live positions = end of step 0 (so that addStep() snaps from the correct state)
+    this.players        = this.steps.length > 1
+      ? this.steps[1].startPositions.players.map(p => ({ ...p }))
+      : curPlayers.map(p => ({ ...p }));
+    this.ball           = this.steps.length > 1
+      ? { ...this.steps[1].startPositions.ball }
+      : { ...curBall };
+    this.ballAttachedTo = null;
+  }
+
+  // Flatten steps to API payload
+  getStepsPayload() {
+    const result = [];
+    for (let si = 0; si < this.steps.length; si++) {
+      const step = this.steps[si];
+      for (let i = 0; i < 6; i++) {
+        const recorded = step.paths[i];
+        result.push({
+          step_index: si,
+          player_number: i + 1,
+          path: recorded.length >= 2 ? recorded : [{ ...step.startPositions.players[i], t: 0 }]
+        });
+      }
+      const bp      = step.ballPath;
+      const ballPos = step.startPositions.ball;
+      result.push({
+        step_index: si,
+        player_number: 0,
+        path: bp.length >= 2 ? bp : [{ ...ballPos, t: 0 }]
+      });
+    }
+    return result;
   }
 
   // ── Layout ────────────────────────────────────────────────
@@ -77,7 +224,6 @@ export class Field {
 
   // ── Draw ─────────────────────────────────────────────────
 
-  // selectedEntity / recordingEntity: 0 = ball, 1–6 = player, null = none
   draw(selectedEntity = null, recordingEntity = null) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -164,9 +310,8 @@ export class Field {
     ctx.lineJoin = 'round';
     ctx.lineCap  = 'round';
 
-    // Player paths (solid red)
     for (let i = 0; i < 6; i++) {
-      const path = this.paths[i];
+      const path = this.currentStep.paths[i];
       if (path.length < 2) continue;
       ctx.strokeStyle = PATH_COLOUR;
       ctx.lineWidth = 2;
@@ -180,19 +325,19 @@ export class Field {
       this._drawArrow(ctx, path[path.length - 2], path[path.length - 1], PATH_COLOUR);
     }
 
-    // Ball path (dashed yellow)
-    if (this.ballPath.length >= 2) {
+    const ballPath = this.currentStep.ballPath;
+    if (ballPath.length >= 2) {
       ctx.strokeStyle = BALL_PATH_COLOUR;
       ctx.lineWidth = 2;
       ctx.setLineDash([7, 4]);
       ctx.beginPath();
-      ctx.moveTo(this._px(this.ballPath[0].x), this._py(this.ballPath[0].y));
-      for (let j = 1; j < this.ballPath.length; j++) {
-        ctx.lineTo(this._px(this.ballPath[j].x), this._py(this.ballPath[j].y));
+      ctx.moveTo(this._px(ballPath[0].x), this._py(ballPath[0].y));
+      for (let j = 1; j < ballPath.length; j++) {
+        ctx.lineTo(this._px(ballPath[j].x), this._py(ballPath[j].y));
       }
       ctx.stroke();
       ctx.setLineDash([]);
-      this._drawArrow(ctx, this.ballPath[this.ballPath.length - 2], this.ballPath[this.ballPath.length - 1], BALL_PATH_COLOUR);
+      this._drawArrow(ctx, ballPath[ballPath.length - 2], ballPath[ballPath.length - 1], BALL_PATH_COLOUR);
     }
 
     ctx.setLineDash([]);
@@ -280,7 +425,6 @@ export class Field {
 
   // ── Hit testing ───────────────────────────────────────────
 
-  // Returns 1–6 for a player, 0 for ball, null for miss
   playerAt(px, py) {
     for (let i = 0; i < 6; i++) {
       const cpx = this._px(this.players[i].x);
@@ -293,7 +437,6 @@ export class Field {
     return null;
   }
 
-  // entity: 0 = ball, 1–6 = player
   movePlayer(entity, px, py) {
     const mx = Math.max(0, Math.min(FIELD_W, this.mxFromPx(px)));
     const my = Math.max(0, Math.min(FIELD_H, this.myFromPy(py)));
@@ -314,7 +457,6 @@ export class Field {
     this.ballAttachedTo = null;
   }
 
-  // Returns the player number the ball overlaps with, or null
   ballOverlapsPlayer() {
     const bpx = this._px(this.ball.x);
     const bpy = this._py(this.ball.y);
@@ -326,27 +468,7 @@ export class Field {
     return null;
   }
 
-  // ── Path helpers ──────────────────────────────────────────
-
-  setPathsFromSaved(savedPaths) {
-    this.paths          = Array.from({ length: 6 }, () => []);
-    this.ballPath       = [];
-    this.ballAttachedTo = null;
-    for (const { player_number, path } of savedPaths) {
-      if (player_number === 0) {
-        this.ballPath = path;
-        if (path.length > 0) this.ball = { x: path[path.length - 1].x, y: path[path.length - 1].y };
-      } else {
-        this.paths[player_number - 1] = path;
-        if (path.length > 0) this.players[player_number - 1] = { x: path[path.length - 1].x, y: path[path.length - 1].y };
-      }
-    }
-  }
-
-  clearPaths() {
-    this.paths    = Array.from({ length: 6 }, () => []);
-    this.ballPath = [];
-  }
+  // ── Snapshot / restore ────────────────────────────────────
 
   snapshotPositions() {
     return {

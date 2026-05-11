@@ -58,7 +58,7 @@ btnStop.addEventListener('click', () => {
 
 btnClear.addEventListener('click', () => {
   if (recorder.state === 'RECORDING') return;
-  field.clearPaths();
+  field.clearAllSteps();
   field.draw(recorder.selectedPlayer, null);
   setStatus('Paths cleared');
 });

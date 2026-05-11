@@ -70,7 +70,7 @@ export class SetsUI {
     try {
       const set = await this._fetch(`${API}/${id}`);
       this.activeSetId = id;
-      this.field.setPathsFromSaved(set.paths);
+      this.field.setStepsFromSaved(set.paths);
       this.field.draw();
       this._btnSave.disabled = false;
       this.onSetLoaded?.(set);
@@ -125,7 +125,7 @@ export class SetsUI {
       await fetch(`${API}/${id}`, { method: 'DELETE' });
       if (this.activeSetId === id) {
         this.activeSetId = null;
-        this.field.clearPaths();
+        this.field.clearAllSteps();
         this.field.draw();
         this._btnSave.disabled = true;
       }
