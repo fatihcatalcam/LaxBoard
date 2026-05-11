@@ -145,12 +145,12 @@ function syncUI() {
     btn.disabled = isRecording;
   }
 
-  // Step nav
+  // Step nav — locked during pause too (navigating steps while paused would desync animator)
   stepIndicator.textContent = `Adım ${stepIdx + 1} / ${stepTotal}`;
-  btnStepPrev.disabled      = isRecording || isPlaying || stepIdx === 0;
-  btnStepNext.disabled      = isRecording || isPlaying || stepIdx >= stepTotal - 1;
-  btnAddStep.disabled       = isRecording || isPlaying;
-  btnDelStep.disabled       = isRecording || isPlaying || stepTotal <= 1;
+  btnStepPrev.disabled      = isRecording || isPlaying || isPaused || stepIdx === 0;
+  btnStepNext.disabled      = isRecording || isPlaying || isPaused || stepIdx >= stepTotal - 1;
+  btnAddStep.disabled       = isRecording || isPlaying || isPaused;
+  btnDelStep.disabled       = isRecording || isPlaying || isPaused || stepTotal <= 1;
 
   btnRecord.disabled = !hasPlayer || isRecording || isPlaying;
   btnStop.disabled   = !isRecording;
