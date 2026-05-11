@@ -3,16 +3,21 @@ import { Recorder } from './recorder.js';
 import { Animator } from './animator.js';
 import { SetsUI }   from './sets-ui.js';
 
-const canvas      = document.getElementById('field-canvas');
-const statusBar   = document.getElementById('status-bar');
-const btnRecord   = document.getElementById('btn-record');
-const btnStop     = document.getElementById('btn-stop');
-const btnClear    = document.getElementById('btn-clear');
-const btnPlay     = document.getElementById('btn-play');
-const btnPause    = document.getElementById('btn-pause');
-const btnSave     = document.getElementById('btn-save');
-const togglePaths = document.getElementById('toggle-paths');
-const playerBtns  = document.getElementById('player-buttons');
+const canvas        = document.getElementById('field-canvas');
+const statusBar     = document.getElementById('status-bar');
+const btnRecord     = document.getElementById('btn-record');
+const btnStop       = document.getElementById('btn-stop');
+const btnClear      = document.getElementById('btn-clear');
+const btnPlay       = document.getElementById('btn-play');
+const btnPause      = document.getElementById('btn-pause');
+const btnSave       = document.getElementById('btn-save');
+const togglePaths   = document.getElementById('toggle-paths');
+const playerBtns    = document.getElementById('player-buttons');
+const btnStepPrev   = document.getElementById('btn-step-prev');
+const btnStepNext   = document.getElementById('btn-step-next');
+const stepIndicator = document.getElementById('step-indicator');
+const btnAddStep    = document.getElementById('btn-add-step');
+const btnDelStep    = document.getElementById('btn-del-step');
 
 const field    = new Field(canvas);
 const recorder = new Recorder(field, canvas);
@@ -58,9 +63,36 @@ btnStop.addEventListener('click', () => {
 
 btnClear.addEventListener('click', () => {
   if (recorder.state === 'RECORDING') return;
-  field.clearAllSteps();
+  field.clearCurrentStepPaths();
   field.draw(recorder.selectedPlayer, null);
   setStatus('Paths cleared');
+});
+
+// ── Step controls ────────────────────────────────────────────
+btnStepPrev.addEventListener('click', () => {
+  field.goToStep(field.currentStepIndex - 1);
+  field.draw(recorder.selectedPlayer, null);
+  syncUI();
+});
+
+btnStepNext.addEventListener('click', () => {
+  field.goToStep(field.currentStepIndex + 1);
+  field.draw(recorder.selectedPlayer, null);
+  syncUI();
+});
+
+btnAddStep.addEventListener('click', () => {
+  if (recorder.state === 'RECORDING') return;
+  field.addStep();
+  field.draw(recorder.selectedPlayer, null);
+  syncUI();
+});
+
+btnDelStep.addEventListener('click', () => {
+  if (recorder.state === 'RECORDING') return;
+  field.deleteStep();
+  field.draw(recorder.selectedPlayer, null);
+  syncUI();
 });
 
 // ── Playback controls ────────────────────────────────────────
@@ -103,6 +135,8 @@ function syncUI() {
   const isPlaying   = animator.state === 'PLAYING';
   const isPaused    = animator.state === 'PAUSED';
   const hasPlayer   = recorder.selectedPlayer !== null;
+  const stepIdx     = field.currentStepIndex;
+  const stepTotal   = field.stepCount;
 
   // Player buttons
   for (const btn of playerBtns.querySelectorAll('.player-btn')) {
@@ -110,6 +144,13 @@ function syncUI() {
     btn.classList.toggle('selected', num === recorder.selectedPlayer);
     btn.disabled = isRecording;
   }
+
+  // Step nav
+  stepIndicator.textContent = `Adım ${stepIdx + 1} / ${stepTotal}`;
+  btnStepPrev.disabled      = isRecording || isPlaying || stepIdx === 0;
+  btnStepNext.disabled      = isRecording || isPlaying || stepIdx >= stepTotal - 1;
+  btnAddStep.disabled       = isRecording || isPlaying;
+  btnDelStep.disabled       = isRecording || isPlaying || stepTotal <= 1;
 
   btnRecord.disabled = !hasPlayer || isRecording || isPlaying;
   btnStop.disabled   = !isRecording;
