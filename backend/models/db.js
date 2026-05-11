@@ -1,14 +1,26 @@
 const { Database } = require('node-sqlite3-wasm');
 const path = require('path');
+const fs   = require('fs');
+
+const DB_PATH   = path.join(__dirname, '..', 'laxboard.db');
+const LOCK_PATH = DB_PATH + '.lock';
+
+function _clearStaleLock() {
+  try {
+    fs.rmSync(LOCK_PATH, { recursive: true, force: true });
+  } catch (_) { /* nothing to clean */ }
+}
 
 let _db;
 
 function getDb() {
   if (!_db) {
-    _db = new Database(path.join(__dirname, '..', 'laxboard.db'));
+    _clearStaleLock();
+    _db = new Database(DB_PATH);
     _db.exec('PRAGMA journal_mode = WAL');
     _db.exec('PRAGMA foreign_keys = ON');
     _initSchema(_db);
+    process.on('exit', () => { try { _db.close(); } catch (_) {} });
   }
   return _db;
 }
