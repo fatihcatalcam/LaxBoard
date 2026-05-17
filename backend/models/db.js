@@ -51,6 +51,31 @@ function _initSchema(db) {
   try {
     db.exec('ALTER TABLE player_paths ADD COLUMN step_index INTEGER NOT NULL DEFAULT 0');
   } catch (_) { /* column already exists — safe to ignore */ }
+
+  // Migrate: old schema had BETWEEN 1 AND 6, ball (player_number=0) requires BETWEEN 0 AND 6
+  const tableRow = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='player_paths'");
+  if (tableRow && String(tableRow.sql).includes('BETWEEN 1 AND 6')) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('BEGIN');
+    try {
+      db.exec('ALTER TABLE player_paths RENAME TO player_paths_old');
+      db.exec(`CREATE TABLE player_paths (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
+        player_number INTEGER NOT NULL CHECK(player_number BETWEEN 0 AND 6),
+        path          TEXT NOT NULL,
+        step_index    INTEGER NOT NULL DEFAULT 0
+      )`);
+      db.exec('INSERT INTO player_paths SELECT * FROM player_paths_old');
+      db.exec('DROP TABLE player_paths_old');
+      db.exec('COMMIT');
+    } catch (e) {
+      db.exec('ROLLBACK');
+      throw e;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
 }
 
 module.exports = { getDb, createTestDb };
