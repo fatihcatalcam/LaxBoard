@@ -3,6 +3,26 @@ import { Recorder } from './recorder.js';
 import { Animator } from './animator.js';
 import { SetsUI }   from './sets-ui.js';
 
+// Auth: verify session and display username
+(async () => {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) { window.location.href = '/login'; return; }
+    const user = await res.json();
+    document.getElementById('username-display').textContent = user.username;
+  } catch {
+    window.location.href = '/login';
+  }
+})();
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } finally {
+    window.location.href = '/login';
+  }
+});
+
 const canvas        = document.getElementById('field-canvas');
 const statusBar     = document.getElementById('status-bar');
 const btnRecord     = document.getElementById('btn-record');

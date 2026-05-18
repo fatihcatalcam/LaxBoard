@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LaxBoard — Giriş</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1a3a1a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #0f2410;
+      border: 1px solid #2d6b26;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 320px;
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 1.5rem; color: #a8d8a8; }
+    label { display: block; font-size: 0.82rem; margin-bottom: 0.3rem; color: #ccc; }
+    input {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border: 1px solid #2d6b26;
+      border-radius: 4px;
+      background: #162816;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    input:focus { outline: none; border-color: #4a9a44; }
+    button[type="submit"] {
+      width: 100%;
+      padding: 0.7rem;
+      background: #2d6b26;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover { background: #3a8a32; }
+    .msg { font-size: 0.83rem; margin-top: 0.6rem; display: none; }
+    .msg.error { color: #ff6b6b; }
+    .msg.success { color: #6bff6b; }
+    .link { text-align: center; margin-top: 1.2rem; font-size: 0.83rem; color: #aaa; }
+    .link a { color: #a8d8a8; text-decoration: none; }
+    .link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>LaxBoard'a Giriş Yap</h1>
+    <form id="loginForm">
+      <label for="username">Kullanıcı Adı</label>
+      <input type="text" id="username" required autocomplete="username" />
+      <label for="password">Şifre</label>
+      <input type="password" id="password" required autocomplete="current-password" />
+      <button type="submit">Giriş Yap</button>
+      <p class="msg" id="msgEl"></p>
+    </form>
+    <p class="link">Hesabın yok mu? <a href="/register">Kayıt Ol</a></p>
+  </div>
+
+  <script>
+    const msgEl = document.getElementById('msgEl');
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('registered')) {
+      msgEl.className = 'msg success';
+      msgEl.textContent = 'Kayıt başarılı! Giriş yapabilirsiniz.';
+      msgEl.style.display = 'block';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msgEl.style.display = 'none';
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          const data = await res.json();
+          msgEl.className = 'msg error';
+          msgEl.textContent = data.error || 'Giriş başarısız';
+          msgEl.style.display = 'block';
+        }
+      } catch {
+        msgEl.className = 'msg error';
+        msgEl.textContent = 'Bağlantı hatası. Tekrar deneyin.';
+        msgEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

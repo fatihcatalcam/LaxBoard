@@ -197,3 +197,37 @@ button.active { background: #e94560; border-color: #e94560; color: #fff; }
 }
 #field-canvas.recording    { cursor: crosshair; }
 #field-canvas.free-dragging { cursor: grabbing; }
+
+#user-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  margin-bottom: 0.8rem;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #2d6b26;
+}
+
+#username-display {
+  color: #a8d8a8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+#btn-logout {
+  background: transparent;
+  border: 1px solid #555;
+  color: #aaa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+#btn-logout:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}

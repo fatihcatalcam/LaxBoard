@@ -52,10 +52,10 @@ function validatePaths(paths) {
 
 function createSetsService(db) {
   return {
-    createSet(name) {
+    createSet(name, userId) {
       const trimmed = validateSetName(name);
       try {
-        const result = db.prepare('INSERT INTO sets (name) VALUES (?)').run(trimmed);
+        const result = db.prepare('INSERT INTO sets (name, user_id) VALUES (?, ?)').run([trimmed, userId]);
         return db.prepare('SELECT * FROM sets WHERE id = ?').get(result.lastInsertRowid);
       } catch (e) {
         if (e.message && e.message.includes('UNIQUE constraint')) throw new DuplicateNameError(trimmed);
@@ -63,8 +63,8 @@ function createSetsService(db) {
       }
     },
 
-    getSet(id) {
-      const set = db.prepare('SELECT * FROM sets WHERE id = ?').get(id);
+    getSet(id, userId) {
+      const set = db.prepare('SELECT * FROM sets WHERE id = ? AND user_id = ?').get([id, userId]);
       if (!set) throw new SetNotFoundError(id);
       const rows = db.prepare(
         'SELECT player_number, step_index, path FROM player_paths WHERE set_id = ? ORDER BY step_index'
@@ -79,37 +79,41 @@ function createSetsService(db) {
       };
     },
 
-    getAllSets() {
-      return db.prepare('SELECT id, name, created_at FROM sets ORDER BY created_at DESC').all();
+    getAllSets(userId) {
+      return db.prepare('SELECT id, name, created_at FROM sets WHERE user_id = ? ORDER BY created_at DESC').all(userId);
     },
 
-    searchSets(q) {
-      if (!q || String(q).trim() === '') return this.getAllSets();
+    searchSets(q, userId) {
+      if (!q || String(q).trim() === '') return this.getAllSets(userId);
       return db.prepare(
-        "SELECT id, name, created_at FROM sets WHERE name LIKE ? ORDER BY created_at DESC"
-      ).all(`%${String(q).trim()}%`);
+        "SELECT id, name, created_at FROM sets WHERE user_id = ? AND name LIKE ? ORDER BY created_at DESC"
+      ).all([userId, `%${String(q).trim()}%`]);
     },
 
-    updateSet(id, name) {
+    updateSet(id, name, userId) {
       const trimmed = validateSetName(name);
-      if (!db.prepare('SELECT id FROM sets WHERE id = ?').get(id)) throw new SetNotFoundError(id);
+      if (!db.prepare('SELECT id FROM sets WHERE id = ? AND user_id = ?').get([id, userId]))
+        throw new SetNotFoundError(id);
       try {
-        db.prepare("UPDATE sets SET name = ?, updated_at = datetime('now') WHERE id = ?").run([trimmed, id]);
-        return db.prepare('SELECT * FROM sets WHERE id = ?').get(id);
+        db.prepare("UPDATE sets SET name = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?")
+          .run([trimmed, id, userId]);
+        return db.prepare('SELECT * FROM sets WHERE id = ? AND user_id = ?').get([id, userId]);
       } catch (e) {
         if (e.message && e.message.includes('UNIQUE constraint')) throw new DuplicateNameError(trimmed);
         throw e;
       }
     },
 
-    deleteSet(id) {
-      if (!db.prepare('SELECT id FROM sets WHERE id = ?').get(id)) throw new SetNotFoundError(id);
-      db.prepare('DELETE FROM sets WHERE id = ?').run(id);
+    deleteSet(id, userId) {
+      if (!db.prepare('SELECT id FROM sets WHERE id = ? AND user_id = ?').get([id, userId]))
+        throw new SetNotFoundError(id);
+      db.prepare('DELETE FROM sets WHERE id = ? AND user_id = ?').run([id, userId]);
     },
 
-    savePaths(setId, paths) {
+    savePaths(setId, userId, paths) {
       validatePaths(paths);
-      if (!db.prepare('SELECT id FROM sets WHERE id = ?').get(setId)) throw new SetNotFoundError(setId);
+      if (!db.prepare('SELECT id FROM sets WHERE id = ? AND user_id = ?').get([setId, userId]))
+        throw new SetNotFoundError(setId);
       const del = db.prepare('DELETE FROM player_paths WHERE set_id = ?');
       const ins = db.prepare(
         'INSERT INTO player_paths (set_id, player_number, step_index, path) VALUES (?, ?, ?, ?)'

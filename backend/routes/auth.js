@@ -5,7 +5,7 @@ const { createAuthService, DuplicateUsernameError, InvalidCredentialsError, Vali
 const { getDb } = require('../models/db');
 const { JWT_SECRET } = require('../middleware/authenticate');
 
-const COOKIE_OPTIONS = { httpOnly: true, sameSite: 'strict', path: '/' };
+const COOKIE_OPTIONS = { httpOnly: true, sameSite: 'strict', path: '/', secure: process.env.NODE_ENV === 'production' };
 const TOKEN_EXPIRY = '7d';
 
 function svc() { return createAuthService(getDb()); }
@@ -21,8 +21,7 @@ function handleError(res, err) {
 router.post('/register', (req, res) => {
   try {
     const user = svc().registerUser(req.body.username, req.body.password);
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
-    res.cookie('token', token, COOKIE_OPTIONS).status(201).json({ id: user.id, username: user.username });
+    res.status(201).json({ id: user.id, username: user.username });
   } catch (e) { handleError(res, e); }
 });
 
@@ -35,7 +34,7 @@ router.post('/login', (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', { path: '/' }).json({ message: 'Logged out' });
+  res.clearCookie('token', { path: '/', secure: process.env.NODE_ENV === 'production' }).json({ message: 'Logged out' });
 });
 
 router.get('/me', (req, res) => {
