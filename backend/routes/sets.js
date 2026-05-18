@@ -8,8 +8,8 @@ function handleError(res, err) {
   if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
   if (err instanceof SetNotFoundError) return res.status(404).json({ error: err.message });
   if (err instanceof DuplicateNameError) return res.status(409).json({ error: err.message });
-  console.error(err);
-  return res.status(500).json({ error: 'Internal server error' });
+  console.error('[sets] 500:', err.message, err.stack);
+  return res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message });
 }
 
 function svc() { return createSetsService(getDb()); }
