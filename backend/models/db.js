@@ -34,12 +34,51 @@ function createTestDb() {
 
 function _initSchema(db) {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS sets (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      name       TEXT UNIQUE NOT NULL,
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
+    CREATE TABLE IF NOT EXISTS users (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      username      TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at    TEXT DEFAULT (datetime('now'))
     );
+  `);
+
+  const setsRow = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='sets'");
+  if (!setsRow) {
+    db.exec(`
+      CREATE TABLE sets (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL,
+        user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(user_id, name)
+      );
+    `);
+  } else if (!String(setsRow.sql).includes('user_id')) {
+    try {
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec('BEGIN');
+      db.exec('ALTER TABLE sets RENAME TO sets_old');
+      db.exec(`CREATE TABLE sets (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT NOT NULL,
+        user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(user_id, name)
+      )`);
+      db.exec('INSERT INTO sets SELECT id, name, NULL, created_at, updated_at FROM sets_old');
+      db.exec('DROP TABLE sets_old');
+      db.exec('COMMIT');
+    } catch (e) {
+      try { db.exec('ROLLBACK'); } catch (_) {}
+      throw e;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS player_paths (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
       set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
@@ -48,6 +87,7 @@ function _initSchema(db) {
       step_index    INTEGER NOT NULL DEFAULT 0
     );
   `);
+
   try {
     db.exec('ALTER TABLE player_paths ADD COLUMN step_index INTEGER NOT NULL DEFAULT 0');
   } catch (_) { /* column already exists — safe to ignore */ }
@@ -55,9 +95,9 @@ function _initSchema(db) {
   // Migrate: old schema had BETWEEN 1 AND 6, ball (player_number=0) requires BETWEEN 0 AND 6
   const tableRow = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='player_paths'");
   if (tableRow && String(tableRow.sql).includes('BETWEEN 1 AND 6')) {
-    db.exec('PRAGMA foreign_keys = OFF');
-    db.exec('BEGIN');
     try {
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec('BEGIN');
       db.exec('ALTER TABLE player_paths RENAME TO player_paths_old');
       db.exec(`CREATE TABLE player_paths (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +110,7 @@ function _initSchema(db) {
       db.exec('DROP TABLE player_paths_old');
       db.exec('COMMIT');
     } catch (e) {
-      db.exec('ROLLBACK');
+      try { db.exec('ROLLBACK'); } catch (_) {}
       throw e;
     } finally {
       db.exec('PRAGMA foreign_keys = ON');

@@ -7,7 +7,10 @@
     "test": "jest"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
     "node-sqlite3-wasm": "^0.8.57",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0"
