@@ -38,6 +38,8 @@ const btnStepNext   = document.getElementById('btn-step-next');
 const stepIndicator = document.getElementById('step-indicator');
 const btnAddStep    = document.getElementById('btn-add-step');
 const btnDelStep    = document.getElementById('btn-del-step');
+const speedSlider   = document.getElementById('speed-slider');
+const speedLabel    = document.getElementById('speed-label');
 
 const field    = new Field(canvas);
 const recorder = new Recorder(field, canvas);
@@ -127,6 +129,13 @@ btnPause.addEventListener('click', () => {
 });
 
 animator.onStateChange = () => syncUI();
+
+// ── Speed control ────────────────────────────────────────────
+speedSlider.addEventListener('input', () => {
+  const s = parseFloat(speedSlider.value);
+  animator.setSpeed(s);
+  speedLabel.textContent = `${s % 1 === 0 ? s : s}×`;
+});
 
 // ── Toggle paths ─────────────────────────────────────────────
 togglePaths.addEventListener('change', () => {

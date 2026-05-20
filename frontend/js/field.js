@@ -248,11 +248,11 @@ export class Field {
 
   // ── Draw ─────────────────────────────────────────────────
 
-  draw(selectedEntity = null, recordingEntity = null) {
+  draw(selectedEntity = null, recordingEntity = null, stepOverride = null) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this._drawField(ctx);
-    if (this.showPaths) this._drawPaths(ctx);
+    if (this.showPaths) this._drawPaths(ctx, stepOverride ?? this.currentStep);
     this._drawPlayers(ctx, selectedEntity, recordingEntity);
     this._drawBall(ctx, selectedEntity, recordingEntity);
   }
@@ -330,12 +330,13 @@ export class Field {
     ctx.fillText('X', ox + fw / 2, xTop + (xBot - xTop) / 2 + 6);
   }
 
-  _drawPaths(ctx) {
+  _drawPaths(ctx, step = null) {
+    step = step ?? this.currentStep;
     ctx.lineJoin = 'round';
     ctx.lineCap  = 'round';
 
     for (let i = 0; i < 6; i++) {
-      const path = this.currentStep.paths[i];
+      const path = step.paths[i];
       if (path.length < 2) continue;
       ctx.strokeStyle = PATH_COLOUR;
       ctx.lineWidth = 2;
@@ -349,7 +350,7 @@ export class Field {
       this._drawArrow(ctx, path[path.length - 2], path[path.length - 1], PATH_COLOUR);
     }
 
-    const ballPath = this.currentStep.ballPath;
+    const ballPath = step.ballPath;
     if (ballPath.length >= 2) {
       ctx.strokeStyle = BALL_PATH_COLOUR;
       ctx.lineWidth = 2;

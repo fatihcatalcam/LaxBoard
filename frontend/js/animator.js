@@ -12,7 +12,12 @@ export class Animator {
     this._stepElapsedAtPause   = 0;
     this._allSteps      = [];
     this._stepDurations = [];
+    this._speed         = 1;
     this.onStateChange  = null;
+  }
+
+  setSpeed(s) {
+    this._speed = Math.max(0.25, Math.min(4, s));
   }
 
   // ── Public API ────────────────────────────────────────────
@@ -46,7 +51,7 @@ export class Animator {
 
   pause() {
     if (this.state !== 'PLAYING') return;
-    this._stepElapsedAtPause = performance.now() - this._stepStartWall;
+    this._stepElapsedAtPause = (performance.now() - this._stepStartWall) * this._speed;
     cancelAnimationFrame(this._rafId);
     this._rafId = null;
     this.state  = 'PAUSED';
@@ -72,14 +77,14 @@ export class Animator {
     const step = this._allSteps[this._currentStepIdx];
     this.field.restorePositions(step.startPositions);
     this._stepDuration  = this._stepDurations[this._currentStepIdx];
-    this._stepStartWall = performance.now() - this._stepElapsedAtPause;
+    this._stepStartWall = performance.now() - this._stepElapsedAtPause / this._speed;
     this._stepElapsedAtPause = 0;
     this._tick();
   }
 
   _tick() {
     this._rafId = requestAnimationFrame((now) => {
-      const elapsed = now - this._stepStartWall;
+      const elapsed = (now - this._stepStartWall) * this._speed;
       const step    = this._allSteps[this._currentStepIdx];
 
       for (let i = 0; i < 6; i++) {
@@ -94,7 +99,7 @@ export class Animator {
         this.field.ball = { ...this.field.players[this.field.ballAttachedTo - 1] };
       }
 
-      this.field.draw(null, null);
+      this.field.draw(null, null, step);
 
       if (elapsed >= this._stepDuration) {
         this._snapToStepEnd(this._currentStepIdx);
@@ -147,11 +152,18 @@ export class Animator {
       if (path[mid].t <= elapsed) lo = mid; else hi = mid;
     }
 
-    const a = path[lo], b = path[hi];
-    const frac = (elapsed - a.t) / (b.t - a.t);
+    const frac = (elapsed - path[lo].t) / (path[hi].t - path[lo].t);
+
+    // Catmull-Rom spline: smooth curve through all recorded points, no data loss
+    const p0 = path[Math.max(0, lo - 1)];
+    const p1 = path[lo];
+    const p2 = path[hi];
+    const p3 = path[Math.min(path.length - 1, hi + 1)];
+
+    const t = frac, t2 = t * t, t3 = t2 * t;
     return {
-      x: a.x + (b.x - a.x) * frac,
-      y: a.y + (b.y - a.y) * frac,
+      x: 0.5 * ((2*p1.x) + (-p0.x + p2.x)*t + (2*p0.x - 5*p1.x + 4*p2.x - p3.x)*t2 + (-p0.x + 3*p1.x - 3*p2.x + p3.x)*t3),
+      y: 0.5 * ((2*p1.y) + (-p0.y + p2.y)*t + (2*p0.y - 5*p1.y + 4*p2.y - p3.y)*t2 + (-p0.y + 3*p1.y - 3*p2.y + p3.y)*t3),
     };
   }
 }
