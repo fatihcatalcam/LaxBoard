@@ -69,6 +69,20 @@ function _initSchema(db) {
       )`);
       db.exec('INSERT INTO sets SELECT id, name, NULL, created_at, updated_at FROM sets_old');
       db.exec('DROP TABLE sets_old');
+      // SQLite 3.26+ auto-updates FK references during RENAME, so player_paths now
+      // references sets_old (which was just dropped). Recreate it to fix the FK.
+      if (db.get("SELECT 1 FROM sqlite_master WHERE type='table' AND name='player_paths'")) {
+        db.exec('ALTER TABLE player_paths RENAME TO player_paths_old');
+        db.exec(`CREATE TABLE player_paths (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
+          player_number INTEGER NOT NULL CHECK(player_number BETWEEN 0 AND 6),
+          path          TEXT NOT NULL,
+          step_index    INTEGER NOT NULL DEFAULT 0
+        )`);
+        db.exec('INSERT INTO player_paths SELECT * FROM player_paths_old');
+        db.exec('DROP TABLE player_paths_old');
+      }
       db.exec('COMMIT');
     } catch (e) {
       try { db.exec('ROLLBACK'); } catch (_) {}
@@ -91,6 +105,32 @@ function _initSchema(db) {
   try {
     db.exec('ALTER TABLE player_paths ADD COLUMN step_index INTEGER NOT NULL DEFAULT 0');
   } catch (_) { /* column already exists — safe to ignore */ }
+
+  // Repair: a previous sets migration may have left player_paths referencing sets_old
+  // (SQLite 3.26+ auto-rewrites FK refs on RENAME). Fix it now if so.
+  const ppRepairRow = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='player_paths'");
+  if (ppRepairRow && String(ppRepairRow.sql).includes('sets_old')) {
+    try {
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.exec('BEGIN');
+      db.exec('ALTER TABLE player_paths RENAME TO player_paths_old');
+      db.exec(`CREATE TABLE player_paths (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        set_id        INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
+        player_number INTEGER NOT NULL CHECK(player_number BETWEEN 0 AND 6),
+        path          TEXT NOT NULL,
+        step_index    INTEGER NOT NULL DEFAULT 0
+      )`);
+      db.exec('INSERT INTO player_paths SELECT * FROM player_paths_old');
+      db.exec('DROP TABLE player_paths_old');
+      db.exec('COMMIT');
+    } catch (e) {
+      try { db.exec('ROLLBACK'); } catch (_) {}
+      throw e;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
 
   // Migrate: old schema had BETWEEN 1 AND 6, ball (player_number=0) requires BETWEEN 0 AND 6
   const tableRow = db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='player_paths'");
