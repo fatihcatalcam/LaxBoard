@@ -86,6 +86,8 @@ export class SetsUI {
   async _createSet() {
     const name = prompt('Set name:');
     if (!name) return;
+    const err = this._validateSetName(name);
+    if (err) { this.onStatus(err); return; }
     try {
       const set = await this._fetch(API, {
         method: 'POST',
@@ -104,6 +106,8 @@ export class SetsUI {
   async _renameSet(id, currentName) {
     const name = prompt('New name:', currentName);
     if (!name || name === currentName) return;
+    const err = this._validateSetName(name);
+    if (err) { this.onStatus(err); return; }
     try {
       await this._fetch(`${API}/${id}`, {
         method: 'PUT',
@@ -154,6 +158,14 @@ export class SetsUI {
   }
 
   // ── Utility ───────────────────────────────────────────────
+
+  _validateSetName(name) {
+    if (!name || !name.trim()) return 'Set adı boş olamaz.';
+    if (name.trim().length > 50) return 'Set adı en fazla 50 karakter olabilir.';
+    if (!/^[a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s\-]+$/.test(name.trim()))
+      return 'Set adı yalnızca harf, rakam, boşluk ve tire içerebilir.';
+    return null;
+  }
 
   async _fetch(url, options) {
     const res = await fetch(url, options);

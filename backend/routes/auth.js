@@ -18,6 +18,40 @@ function handleError(res, err) {
   return res.status(500).json({ error: 'Internal server error' });
 }
 
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: fatih
+ *               password:
+ *                 type: string
+ *                 example: secret123
+ *     responses:
+ *       201:
+ *         description: User created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: integer }
+ *                 username: { type: string }
+ *       400:
+ *         description: Validation error (username 3-30 chars, password min 6 chars)
+ *       409:
+ *         description: Username already taken
+ */
 router.post('/register', (req, res) => {
   try {
     const user = svc().registerUser(req.body.username, req.body.password);
@@ -25,6 +59,34 @@ router.post('/register', (req, res) => {
   } catch (e) { handleError(res, e); }
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Log in and receive a session cookie
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username: { type: string }
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Logged in — sets httpOnly JWT cookie
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: integer }
+ *                 username: { type: string }
+ *       401:
+ *         description: Invalid username or password
+ */
 router.post('/login', (req, res) => {
   try {
     const user = svc().loginUser(req.body.username, req.body.password);
@@ -33,10 +95,37 @@ router.post('/login', (req, res) => {
   } catch (e) { handleError(res, e); }
 });
 
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Log out (clears the session cookie)
+ *     responses:
+ *       200:
+ *         description: Logged out
+ */
 router.post('/logout', (req, res) => {
   res.clearCookie('token', { path: '/', secure: process.env.NODE_ENV === 'production' }).json({ message: 'Logged out' });
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Return the currently authenticated user
+ *     responses:
+ *       200:
+ *         description: Authenticated user info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id: { type: integer }
+ *                 username: { type: string }
+ *       401:
+ *         description: Not authenticated
+ */
 router.get('/me', (req, res) => {
   const token = req.cookies?.token;
   if (!token) return res.status(401).json({ error: 'Authentication required' });

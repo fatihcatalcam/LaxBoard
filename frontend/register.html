@@ -6,69 +6,137 @@
   <title>LaxBoard — Kayıt Ol</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: system-ui, sans-serif;
-      background: #1a3a1a;
-      color: #fff;
+      background: #0a0a12;
+      color: #e0e0e0;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
     }
-    .card {
-      background: #0f2410;
-      border: 1px solid #2d6b26;
-      border-radius: 8px;
-      padding: 2rem;
-      width: 320px;
+
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
     }
-    h1 { font-size: 1.3rem; margin-bottom: 1.5rem; color: #a8d8a8; }
-    label { display: block; font-size: 0.82rem; margin-bottom: 0.3rem; color: #ccc; }
-    .hint { font-size: 0.75rem; color: #888; margin-bottom: 0.8rem; margin-top: -0.6rem; }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 24px rgba(233, 69, 96, 0.5);
+    }
+    .logo span { color: #e94560; }
+
+    .card {
+      background: #0e0e1a;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-left: 3px solid #e94560;
+      border-radius: 8px;
+      padding: 2rem 2rem 1.6rem;
+      width: 320px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #e94560;
+      background: rgba(233, 69, 96, 0.12);
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      margin-bottom: 1.6rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+      color: #555;
+    }
+
+    .hint {
+      font-size: 0.72rem;
+      color: #3a3a55;
+      margin-bottom: 0.9rem;
+      margin-top: -0.6rem;
+    }
+
     input {
       width: 100%;
-      padding: 0.6rem 0.8rem;
-      border: 1px solid #2d6b26;
-      border-radius: 4px;
-      background: #162816;
-      color: #fff;
-      font-size: 1rem;
-      margin-bottom: 0.3rem;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.04);
+      color: #e0e0e0;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    input:focus { outline: none; border-color: #4a9a44; }
+    input:focus { border-color: rgba(233, 69, 96, 0.6); }
+
     button[type="submit"] {
       width: 100%;
       padding: 0.7rem;
-      background: #2d6b26;
+      background: #e94560;
       color: #fff;
       border: none;
-      border-radius: 4px;
-      font-size: 1rem;
+      border-radius: 5px;
+      font-size: 0.92rem;
+      font-weight: 700;
       cursor: pointer;
+      letter-spacing: 0.04em;
       margin-top: 0.7rem;
+      box-shadow: 0 0 14px rgba(233, 69, 96, 0.35);
+      transition: background 0.15s, box-shadow 0.15s;
     }
-    button[type="submit"]:hover { background: #3a8a32; }
-    .msg { font-size: 0.83rem; margin-top: 0.6rem; display: none; }
+    button[type="submit"]:hover {
+      background: #ff5575;
+      box-shadow: 0 0 22px rgba(233, 69, 96, 0.55);
+    }
+
+    .msg { font-size: 0.82rem; margin-top: 0.7rem; display: none; }
     .msg.error { color: #ff6b6b; }
-    .link { text-align: center; margin-top: 1.2rem; font-size: 0.83rem; color: #aaa; }
-    .link a { color: #a8d8a8; text-decoration: none; }
-    .link a:hover { text-decoration: underline; }
+
+    .link {
+      text-align: center;
+      margin-top: 1.3rem;
+      font-size: 0.8rem;
+      color: #444;
+    }
+    .link a { color: #e94560; text-decoration: none; font-weight: 600; }
+    .link a:hover { color: #ff6b85; text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Kayıt Ol</h1>
-    <form id="registerForm">
-      <label for="username">Kullanıcı Adı</label>
-      <input type="text" id="username" required autocomplete="username" />
-      <p class="hint">3–30 karakter, harf/rakam/alt çizgi/tire</p>
-      <label for="password">Şifre</label>
-      <input type="password" id="password" required autocomplete="new-password" />
-      <p class="hint">En az 6 karakter</p>
-      <button type="submit">Kayıt Ol</button>
-      <p class="msg" id="msgEl"></p>
-    </form>
-    <p class="link">Hesabın var mı? <a href="/login">Giriş Yap</a></p>
+  <div class="wrapper">
+    <div class="logo">Lax<span>Board</span></div>
+    <div class="card">
+      <div class="card-title">Kayıt Ol</div>
+      <form id="registerForm">
+        <label for="username">Kullanıcı Adı</label>
+        <input type="text" id="username" required autocomplete="username" />
+        <p class="hint">3–30 karakter, harf/rakam/alt çizgi/tire</p>
+        <label for="password">Şifre</label>
+        <input type="password" id="password" required autocomplete="new-password" />
+        <p class="hint">En az 6 karakter</p>
+        <button type="submit">Kayıt Ol</button>
+        <p class="msg" id="msgEl"></p>
+      </form>
+      <p class="link">Hesabın var mı? <a href="/login">Giriş Yap</a></p>
+    </div>
   </div>
 
   <script>
