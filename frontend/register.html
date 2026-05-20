@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LaxBoard — Kayıt Ol</title>
+  <title>LaxBoard — Register</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -124,18 +124,18 @@
   <div class="wrapper">
     <div class="logo">Lax<span>Board</span></div>
     <div class="card">
-      <div class="card-title">Kayıt Ol</div>
+      <div class="card-title">Register</div>
       <form id="registerForm">
-        <label for="username">Kullanıcı Adı</label>
+        <label for="username">Username</label>
         <input type="text" id="username" required autocomplete="username" />
-        <p class="hint">3–30 karakter, harf/rakam/alt çizgi/tire</p>
-        <label for="password">Şifre</label>
+        <p class="hint">3–30 characters, letters/numbers/underscore/hyphen</p>
+        <label for="password">Password</label>
         <input type="password" id="password" required autocomplete="new-password" />
-        <p class="hint">En az 6 karakter</p>
-        <button type="submit">Kayıt Ol</button>
+        <p class="hint">At least 6 characters</p>
+        <button type="submit">Register</button>
         <p class="msg" id="msgEl"></p>
       </form>
-      <p class="link">Hesabın var mı? <a href="/login">Giriş Yap</a></p>
+      <p class="link">Already have an account? <a href="/login">Sign In</a></p>
     </div>
   </div>
 
@@ -158,12 +158,12 @@
         } else {
           const data = await res.json();
           msgEl.className = 'msg error';
-          msgEl.textContent = data.error || 'Kayıt başarısız';
+          msgEl.textContent = data.error || 'Registration failed';
           msgEl.style.display = 'block';
         }
       } catch {
         msgEl.className = 'msg error';
-        msgEl.textContent = 'Bağlantı hatası. Tekrar deneyin.';
+        msgEl.textContent = 'Connection error. Please try again.';
         msgEl.style.display = 'block';
       }
     });

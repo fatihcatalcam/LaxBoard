@@ -160,10 +160,10 @@ export class SetsUI {
   // ── Utility ───────────────────────────────────────────────
 
   _validateSetName(name) {
-    if (!name || !name.trim()) return 'Set adı boş olamaz.';
-    if (name.trim().length > 50) return 'Set adı en fazla 50 karakter olabilir.';
+    if (!name || !name.trim()) return 'Set name cannot be empty.';
+    if (name.trim().length > 50) return 'Set name must be 50 characters or fewer.';
     if (!/^[a-zA-Z0-9ğüşıöçĞÜŞİÖÇ\s\-]+$/.test(name.trim()))
-      return 'Set adı yalnızca harf, rakam, boşluk ve tire içerebilir.';
+      return 'Set name may only contain letters, numbers, spaces, and hyphens.';
     return null;
   }
 

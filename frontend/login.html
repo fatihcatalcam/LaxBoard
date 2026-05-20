@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LaxBoard — Giriş</title>
+  <title>LaxBoard — Sign In</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -117,16 +117,16 @@
   <div class="wrapper">
     <div class="logo">Lax<span>Board</span></div>
     <div class="card">
-      <div class="card-title">Giriş Yap</div>
+      <div class="card-title">Sign In</div>
       <form id="loginForm">
-        <label for="username">Kullanıcı Adı</label>
+        <label for="username">Username</label>
         <input type="text" id="username" required autocomplete="username" />
-        <label for="password">Şifre</label>
+        <label for="password">Password</label>
         <input type="password" id="password" required autocomplete="current-password" />
-        <button type="submit">Giriş Yap</button>
+        <button type="submit">Sign In</button>
         <p class="msg" id="msgEl"></p>
       </form>
-      <p class="link">Hesabın yok mu? <a href="/register">Kayıt Ol</a></p>
+      <p class="link">Don't have an account? <a href="/register">Register</a></p>
     </div>
   </div>
 
@@ -136,7 +136,7 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get('registered')) {
       msgEl.className = 'msg success';
-      msgEl.textContent = 'Kayıt başarılı! Giriş yapabilirsiniz.';
+      msgEl.textContent = 'Registration successful! You can now sign in.';
       msgEl.style.display = 'block';
     }
 
@@ -156,12 +156,12 @@
         } else {
           const data = await res.json();
           msgEl.className = 'msg error';
-          msgEl.textContent = data.error || 'Giriş başarısız';
+          msgEl.textContent = data.error || 'Login failed';
           msgEl.style.display = 'block';
         }
       } catch {
         msgEl.className = 'msg error';
-        msgEl.textContent = 'Bağlantı hatası. Tekrar deneyin.';
+        msgEl.textContent = 'Connection error. Please try again.';
         msgEl.style.display = 'block';
       }
     });
